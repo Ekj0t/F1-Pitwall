@@ -1,16 +1,3 @@
-"""
-F1 Pitwall Replay - Starter App
---------------------------------
-A Streamlit app that lets you pick a season/race/session from FastF1,
-then "replay" the race in chunks of N laps, with charts that progressively
-reveal data up to the current frame.
-
-Run with:
-    streamlit run pitwall_app.py
-
-First run will be slow (FastF1 downloads + caches session data).
-"""
-
 import os
 import time
 
@@ -20,9 +7,6 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-# ----------------------------------------------------------------------------
-# Setup
-# ----------------------------------------------------------------------------
 
 CACHE_DIR = "f1_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -47,10 +31,6 @@ TIRE_COLORS = {
 }
 
 st.set_page_config(page_title="F1 Pitwall Replay", layout="wide")
-
-# ----------------------------------------------------------------------------
-# Sidebar: session selection
-# ----------------------------------------------------------------------------
 
 st.sidebar.title("🏁 Session Select")
 
@@ -78,12 +58,8 @@ session_type = st.sidebar.selectbox(
 load_btn = st.sidebar.button("Load Session", type="primary")
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("🎯 Focus Driver")
+st.sidebar.subheader("Focus Driver")
 driver_placeholder = st.sidebar.empty()
-
-# ----------------------------------------------------------------------------
-# Data loading + master dataframe (heavy work, cached)
-# ----------------------------------------------------------------------------
 
 
 @st.cache_data(show_spinner="Loading session data from FastF1 (first load can take a minute)...")
@@ -109,8 +85,6 @@ def load_session(yr, event, sess_type):
     laps["GapToLeader"] = laps["CumTimeSeconds"] - leader_time_per_lap
 
     results = session.results[["Abbreviation", "TeamName", "Position"]].copy()
-
-    # --- Track map data ---------------------------------------------------
     # Track outline: X/Y from the fastest lap of the session (clean single trace)
     fastest_lap = session.laps.pick_fastest()
     track_outline = fastest_lap.get_telemetry()[["X", "Y"]].dropna()
@@ -231,9 +205,6 @@ if load_btn or "laps_df" in st.session_state:
     # Filter everything down to just the focus driver from here on
     driver_window = window[window["Driver"] == focus_driver]
 
-    # ------------------------------------------------------------------
-    # HUD: current status strip
-    # ------------------------------------------------------------------
     if not driver_window.empty:
         latest = driver_window.iloc[-1]
 
@@ -284,9 +255,6 @@ if load_btn or "laps_df" in st.session_state:
 
     st.markdown("---")
 
-    # ------------------------------------------------------------------
-    # Chart 1: Lap time evolution (focus driver only)
-    # ------------------------------------------------------------------
     st.subheader(f"Lap Time Evolution — {focus_driver}")
     fig1, ax1 = plt.subplots(figsize=(12, 4))
     ax1.plot(
@@ -301,9 +269,6 @@ if load_btn or "laps_df" in st.session_state:
     ax1.set_xlim(0, total_laps)
     st.pyplot(fig1)
 
-    # ------------------------------------------------------------------
-    # Chart 2: Tire stint timeline (focus driver only)
-    # ------------------------------------------------------------------
     st.subheader(f"Tire Stint Timeline — {focus_driver}")
     stints = (
         driver_window.groupby(["Stint", "Compound"])
@@ -333,9 +298,6 @@ if load_btn or "laps_df" in st.session_state:
     ax2.set_xlim(0, total_laps)
     st.pyplot(fig2)
 
-    # ------------------------------------------------------------------
-    # Chart 3: Tire degradation (focus driver only, colored by compound)
-    # ------------------------------------------------------------------
     st.subheader(f"Tire Degradation — {focus_driver}")
     fig3, ax3 = plt.subplots(figsize=(12, 4))
     sns.scatterplot(
@@ -360,10 +322,6 @@ if load_btn or "laps_df" in st.session_state:
     ax3.set_xlabel("Tire Age (laps)")
     ax3.set_ylabel("Lap Time (s)")
     st.pyplot(fig3)
-
-    # ------------------------------------------------------------------
-    # Autoplay logic (placed last so it reruns the whole script)
-    # ------------------------------------------------------------------
     if autoplay:
         if st.session_state["frame"] < total_frames - 1:
             time.sleep(1.2)
@@ -373,4 +331,4 @@ if load_btn or "laps_df" in st.session_state:
             st.toast("Replay finished")
 
 else:
-    st.info("👈 Pick a season, race, and session, then click **Load Session** to begin.")
+    st.info("Pick a season, race, and session, then click **Load Session** to begin.")
